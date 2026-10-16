@@ -14,6 +14,7 @@
       <li><a href="index.html">Dashboard</a></li>
       <li><a href="paket.html">Paket</a></li>
       <li><a href="jadwal.html" class="active">Jadwal</a></li>
+      <li><a href="riwayat.html">Riwayat Booking</a></li>
     </ul></nav>
   </div>
 </header>
@@ -21,8 +22,17 @@
 <main>
   <section class="hero">
     <h1>Jadwal kelas</h1>
-    <p>Pilih tanggal di kalender. Titik ungu artinya ada kelas di hari itu.</p>
+    <p>Pilih jenis kelas, lalu pilih tanggal di kalender. Titik ungu artinya ada kelas di hari itu.</p>
   </section>
+
+  <div class="filter-bar" role="group" aria-label="Filter jenis kelas">
+    <span class="label">Jenis kelas:</span>
+    <button type="button" class="chip aktif" data-jenis="semua" aria-pressed="true">Semua</button>
+    <button type="button" class="chip" data-jenis="hatha" aria-pressed="false">Hatha</button>
+    <button type="button" class="chip" data-jenis="vinyasa" aria-pressed="false">Vinyasa</button>
+    <button type="button" class="chip" data-jenis="yin" aria-pressed="false">Yin</button>
+    <button type="button" class="chip" data-jenis="napas" aria-pressed="false">Pernapasan</button>
+  </div>
 
   <div class="layout">
     <section class="box" aria-label="Kalender">
@@ -46,69 +56,76 @@
     <div class="ringkasan" id="ringkasan"></div>
 
     <form id="form-daftar">
-      <label for="nama">Nama lengkap</label>
-      <input type="text" id="nama" required>
-
-      <label for="email">Email</label>
-      <input type="email" id="email" required>
-
-      <label for="hp">No. HP</label>
-      <input type="tel" id="hp" required>
-
-      <label>Pembayaran</label>
-      <label class="opsi">
-        <input type="radio" name="bayar" value="satuan" checked>
-        <span>Bayar 1 credit tanpa member
-          <small>Rp 100.000 untuk satu kelas ini</small></span>
-      </label>
-      <label class="opsi">
-        <input type="radio" name="bayar" value="member">
-        <span>Pakai credit member
-          <small>1 credit dipotong dari paket member kamu</small></span>
-      </label>
-
-      <div id="bayar-satuan">
-        <label for="metode">Metode pembayaran</label>
-        <select id="metode">
-          <option>Transfer bank</option>
-          <option>QRIS</option>
-          <option>E-wallet</option>
-        </select>
-      </div>
-
-      <div id="bayar-member" class="sembunyi">
-        <label for="kode">Kode member</label>
-        <input type="text" id="kode" placeholder="Contoh: MBR-001">
-      </div>
+      <label for="kode">Kode credit (kode member atau kode drop-in)</label>
+      <input type="text" id="kode" placeholder="Contoh: MBR-123456" autocomplete="off" list="daftar-kode" required>
+      <datalist id="daftar-kode"></datalist>
+      <div id="info-akun" class="ringkasan sembunyi" aria-live="polite"></div>
 
       <button type="submit">Daftar kelas ini</button>
       <p id="pesan" role="status"></p>
+      <p class="catatan">Belum punya credit? <a href="paket.html">Pilih paket dulu</a>, isi data dan bayar di halaman Paket, lalu kembali ke sini dengan kode credit kamu.</p>
     </form>
   </section>
 </main>
 
+<script src="kredit.js"></script>
 <script>
   // Jadwal mingguan. Angka = hari (0 Minggu, 1 Senin, ... 6 Sabtu)
+  // jenis: hatha | vinyasa | yin | napas
   var KELAS = {
-    1: [{ jam: '07.00 - 08.00', nama: 'Hatha Yoga (Pemula)', ins: 'Ayu' }],
-    2: [{ jam: '18.30 - 19.30', nama: 'Vinyasa Flow', ins: 'Raka' }],
-    3: [{ jam: '07.00 - 08.00', nama: 'Meditasi dan Pernapasan', ins: 'Ayu' },
-        { jam: '18.30 - 19.30', nama: 'Hatha Yoga (Pemula)', ins: 'Dewi' }],
-    4: [{ jam: '18.30 - 19.30', nama: 'Yin Yoga', ins: 'Dewi' }],
-    5: [{ jam: '07.00 - 08.00', nama: 'Vinyasa Flow', ins: 'Raka' }],
-    6: [{ jam: '08.00 - 09.30', nama: 'Vinyasa Flow', ins: 'Raka' }],
-    0: [{ jam: '08.00 - 09.00', nama: 'Hatha Yoga (Pemula)', ins: 'Dewi' }]
+    1: [{ jam: '07.00 - 08.00', nama: 'Hatha Yoga (Pemula)', ins: 'Ayu', jenis: 'hatha' }],
+    2: [{ jam: '18.30 - 19.30', nama: 'Vinyasa Flow', ins: 'Raka', jenis: 'vinyasa' }],
+    3: [{ jam: '07.00 - 08.00', nama: 'Meditasi dan Pernapasan', ins: 'Ayu', jenis: 'napas' },
+        { jam: '18.30 - 19.30', nama: 'Hatha Yoga (Pemula)', ins: 'Dewi', jenis: 'hatha' }],
+    4: [{ jam: '18.30 - 19.30', nama: 'Yin Yoga', ins: 'Dewi', jenis: 'yin' }],
+    5: [{ jam: '07.00 - 08.00', nama: 'Vinyasa Flow', ins: 'Raka', jenis: 'vinyasa' }],
+    6: [{ jam: '08.00 - 09.30', nama: 'Vinyasa Flow', ins: 'Raka', jenis: 'vinyasa' }],
+    0: [{ jam: '08.00 - 09.00', nama: 'Hatha Yoga (Pemula)', ins: 'Dewi', jenis: 'hatha' }]
   };
-  var HARGA_SATUAN = 'Rp 100.000';
+  var NAMA_JENIS = { semua: 'Semua', hatha: 'Hatha', vinyasa: 'Vinyasa', yin: 'Yin', napas: 'Pernapasan' };
+  var KUOTA_KELAS = 15;
+  var KUNCI_BOOKING = 'sukmaYogaBookings';
   var NAMA_HARI = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
 
   var hariIni = new Date(); hariIni.setHours(0, 0, 0, 0);
   var bulan = new Date(hariIni.getFullYear(), hariIni.getMonth(), 1);
   var tanggalDipilih = null;
   var kelasDipilih = null;
+  var filter = 'semua';
 
   function formatTanggal(d) {
     return d.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  }
+
+  // Penyimpanan demo memakai localStorage pada browser/perangkat ini.
+  function ambilBooking() {
+    try { return JSON.parse(localStorage.getItem(KUNCI_BOOKING) || '[]'); }
+    catch (e) { return []; }
+  }
+
+  function tanggalKey(d) {
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+
+  function kunciKelas(d, k) {
+    return tanggalKey(d) + '|' + k.jam + '|' + k.nama + '|' + k.ins;
+  }
+
+  function jumlahBooking(d, k) {
+    var key = kunciKelas(d, k);
+    return ambilBooking().filter(function (b) { return b.kunciKelas === key && b.status !== 'dibatalkan'; }).length;
+  }
+
+  // Kelas pada tanggal d, sudah disaring sesuai filter
+  function kelasPada(d) {
+    return (KELAS[d.getDay()] || []).filter(function (k) {
+      return filter === 'semua' || k.jenis === filter;
+    });
+  }
+
+  function sembunyikanForm() {
+    kelasDipilih = null;
+    document.getElementById('daftar').classList.add('sembunyi');
   }
 
   function gambarKalender() {
@@ -139,7 +156,7 @@
         b.type = 'button';
         b.textContent = tgl;
         b.className = 'cal-day';
-        if (KELAS[d.getDay()]) b.className += ' ada';
+        if (kelasPada(d).length > 0) b.className += ' ada';
         if (d < hariIni) b.disabled = true;
         if (tanggalDipilih && d.getTime() === tanggalDipilih.getTime()) b.className += ' dipilih';
         b.addEventListener('click', function () { pilihTanggal(d); });
@@ -150,17 +167,23 @@
 
   function pilihTanggal(d) {
     tanggalDipilih = d;
-    kelasDipilih = null;
-    document.getElementById('daftar').classList.add('sembunyi');
+    sembunyikanForm();
     gambarKalender();
+    gambarDaftarKelas();
+  }
 
+  function gambarDaftarKelas() {
     var daftar = document.getElementById('daftar-kelas');
     daftar.innerHTML = '';
-    document.getElementById('judul-kelas').textContent = formatTanggal(d);
+    if (!tanggalDipilih) return;
 
-    var list = KELAS[d.getDay()] || [];
+    document.getElementById('judul-kelas').textContent = formatTanggal(tanggalDipilih);
+
+    var list = kelasPada(tanggalDipilih);
     if (list.length === 0) {
-      document.getElementById('info-kelas').textContent = 'Tidak ada kelas di tanggal ini.';
+      document.getElementById('info-kelas').textContent = filter === 'semua'
+        ? 'Tidak ada kelas di tanggal ini.'
+        : 'Tidak ada kelas ' + NAMA_JENIS[filter] + ' di tanggal ini. Coba tanggal lain atau pilih jenis "Semua".';
       return;
     }
     document.getElementById('info-kelas').textContent = 'Klik salah satu kelas untuk mendaftar.';
@@ -168,9 +191,13 @@
     list.forEach(function (k) {
       var b = document.createElement('button');
       b.type = 'button';
-      b.className = 'kelas-item';
-      b.innerHTML = '<strong>' + k.nama + '</strong><span>' + k.jam + ' bersama ' + k.ins + '</span>';
+      var terisi = jumlahBooking(tanggalDipilih, k);
+      var sisa = Math.max(0, KUOTA_KELAS - terisi);
+      b.className = 'kelas-item' + (sisa === 0 ? ' penuh' : '');
+      b.innerHTML = '<strong>' + k.nama + '</strong><span>' + k.jam + ' bersama ' + k.ins + '</span><span class="kuota">Sisa ' + sisa + ' dari ' + KUOTA_KELAS + ' tempat</span>' + '<span class="bar"><i class="' + (sisa <= 4 ? 'hampir' : '') + '" style="width:' + Math.round(terisi / KUOTA_KELAS * 100) + '%"></i></span>' + (sisa === 0 ? '<span class="status-penuh">Kelas penuh</span>' : '');
+      if (sisa === 0) { b.disabled = true; b.setAttribute('aria-label', k.nama + ', kelas penuh'); }
       b.addEventListener('click', function () {
+        if (jumlahBooking(tanggalDipilih, k) >= KUOTA_KELAS) return;
         document.querySelectorAll('.kelas-item').forEach(function (x) { x.classList.remove('dipilih'); });
         b.classList.add('dipilih');
         pilihKelas(k);
@@ -189,35 +216,119 @@
     form.scrollIntoView({ behavior: 'smooth' });
   }
 
-  // Ganti tampilan sesuai pilihan pembayaran
-  document.querySelectorAll('input[name="bayar"]').forEach(function (r) {
-    r.addEventListener('change', function () {
-      var member = document.querySelector('input[name="bayar"]:checked').value === 'member';
-      document.getElementById('bayar-member').classList.toggle('sembunyi', !member);
-      document.getElementById('bayar-satuan').classList.toggle('sembunyi', member);
-      document.getElementById('kode').required = member;
+  // Filter jenis kelas
+  document.querySelectorAll('.chip').forEach(function (c) {
+    c.addEventListener('click', function () {
+      filter = c.getAttribute('data-jenis');
+      document.querySelectorAll('.chip').forEach(function (x) {
+        var aktif = x === c;
+        x.classList.toggle('aktif', aktif);
+        x.setAttribute('aria-pressed', aktif ? 'true' : 'false');
+      });
+      sembunyikanForm();
+      gambarKalender();
+      gambarDaftarKelas();
     });
   });
 
-  // Tampilan saja: data belum disimpan ke server.
+  function tampilPesan(teks, galat) {
+    var p = document.getElementById('pesan');
+    p.textContent = teks;
+    p.classList.toggle('galat', !!galat);
+    p.style.display = 'block';
+  }
+
+  // Tampilkan info credit begitu kode diketik: atas nama, sisa credit, masa berlaku
+  function infoAkun() {
+    var kotak = document.getElementById('info-akun');
+    var kode = document.getElementById('kode').value.trim();
+    kotak.innerHTML = '';
+    kotak.classList.remove('error');
+    if (!kode) { kotak.classList.add('sembunyi'); return; }
+    kotak.classList.remove('sembunyi');
+    var akun = Kredit.cariAkun(kode);
+    if (!akun) {
+      kotak.classList.add('error');
+      kotak.textContent = 'Kode credit belum ditemukan di browser ini. Pastikan kodenya benar, atau beli paket di halaman Paket.';
+      return;
+    }
+    var judul = document.createElement('strong');
+    judul.textContent = 'Atas nama ' + akun.nama;
+    kotak.appendChild(judul);
+    kotak.appendChild(document.createElement('br'));
+    kotak.appendChild(document.createTextNode(
+      (akun.tipe === 'member' ? 'Paket ' + akun.paket : 'Drop-in (tanpa member)') +
+      ' · Sisa ' + Kredit.sisa(akun) + ' dari ' + akun.totalCredit + ' credit · Berlaku sampai ' + Kredit.formatTanggal(akun.berlakuSampai)));
+  }
+
+  function isiDaftarKode() {
+    var dl = document.getElementById('daftar-kode');
+    dl.innerHTML = '';
+    Kredit.semuaAkun().forEach(function (a) {
+      var o = document.createElement('option');
+      o.value = a.kode;
+      o.label = a.nama + ' (' + (a.tipe === 'member' ? a.paket : 'Drop-in') + ')';
+      dl.appendChild(o);
+    });
+  }
+
+  document.getElementById('kode').addEventListener('input', infoAkun);
+
+  // Booking disimpan di localStorage browser agar tetap ada setelah halaman dimuat ulang.
   document.getElementById('form-daftar').addEventListener('submit', function (e) {
     e.preventDefault();
     if (!kelasDipilih) return;
-    var nama = document.getElementById('nama').value;
-    var jenis = document.querySelector('input[name="bayar"]:checked').value;
-    var teks = 'Terima kasih, ' + nama + '. Kamu terdaftar di ' + kelasDipilih.nama +
-      ' pada ' + formatTanggal(tanggalDipilih) + ', ' + kelasDipilih.jam + '. ';
-    if (jenis === 'member') {
-      teks += '1 credit dari member ' + document.getElementById('kode').value + ' akan dipotong.';
-    } else {
-      teks += 'Selesaikan pembayaran ' + HARGA_SATUAN + ' lewat ' + document.getElementById('metode').value + '.';
+    if (jumlahBooking(tanggalDipilih, kelasDipilih) >= KUOTA_KELAS) {
+      tampilPesan('Maaf, kelas ini baru saja penuh. Silakan pilih kelas atau jadwal lain.', true);
+      gambarDaftarKelas();
+      return;
     }
-    var p = document.getElementById('pesan');
-    p.textContent = teks;
-    p.style.display = 'block';
+    var akun = Kredit.cariAkun(document.getElementById('kode').value);
+    if (!akun) {
+      tampilPesan('Kode credit tidak ditemukan. Beli paket dulu di halaman Paket, lalu pakai kode yang kamu terima.', true);
+      return;
+    }
+    var tglKelas = tanggalKey(tanggalDipilih);
+    if (akun.berlakuSampai < tglKelas) {
+      tampilPesan('Credit ' + akun.kode + ' berlaku sampai ' + Kredit.formatTanggal(akun.berlakuSampai) + ', jadi tidak bisa dipakai untuk kelas tanggal ' + formatTanggal(tanggalDipilih) + '.', true);
+      return;
+    }
+    if (Kredit.sisa(akun) <= 0) {
+      tampilPesan('Credit untuk kode ' + akun.kode + ' sudah habis. Silakan beli paket baru di halaman Paket.', true);
+      return;
+    }
+    var kunci = kunciKelas(tanggalDipilih, kelasDipilih);
+    var sudahAda = ambilBooking().some(function (b) {
+      return b.kodeMember === akun.kode && b.kunciKelas === kunci && b.status !== 'dibatalkan';
+    });
+    if (sudahAda) {
+      tampilPesan('Kode ' + akun.kode + ' sudah terdaftar di kelas ini.', true);
+      return;
+    }
+
+    var member = akun.tipe === 'member';
+    var booking = {
+      id: 'SY-' + Date.now(), nama: akun.nama, email: akun.email,
+      hp: akun.hp, tanggal: tglKelas,
+      tanggalTeks: formatTanggal(tanggalDipilih), kelas: kelasDipilih.nama, jam: kelasDipilih.jam,
+      instruktur: kelasDipilih.ins, jenisPembayaran: member ? 'member' : 'satuan',
+      metode: member ? 'Credit member' : 'Drop-in (1 credit tanpa member)',
+      kodeMember: akun.kode,
+      kunciKelas: kunci, status: 'aktif', dibuatPada: new Date().toISOString()
+    };
+    var bookings = ambilBooking();
+    bookings.push(booking);
+    try { localStorage.setItem(KUNCI_BOOKING, JSON.stringify(bookings)); }
+    catch (err) {
+      tampilPesan('Booking tidak dapat disimpan di browser ini. Pastikan penyimpanan browser diizinkan, lalu coba lagi.', true);
+      return;
+    }
+    tampilPesan('Booking berhasil disimpan! Kode booking: ' + booking.id + '. Terima kasih, ' + akun.nama + '. Kamu terdaftar di ' + kelasDipilih.nama +
+      ' pada ' + formatTanggal(tanggalDipilih) + ', ' + kelasDipilih.jam + '. 1 credit dipakai, sisa credit ' + Kredit.sisa(akun) + '.', false);
     this.reset();
-    document.getElementById('bayar-member').classList.add('sembunyi');
-    document.getElementById('bayar-satuan').classList.remove('sembunyi');
+    document.getElementById('info-akun').classList.add('sembunyi');
+    isiDaftarKode();
+    gambarDaftarKelas();
   });
 
   document.getElementById('prev').addEventListener('click', function () {
@@ -229,9 +340,17 @@
     gambarKalender();
   });
 
+  isiDaftarKode();
   gambarKalender();
+  // Dari dashboard: jadwal.html?tgl=YYYY-MM-DD langsung memilih tanggal itu
+  var tglUrl = new URLSearchParams(location.search).get('tgl');
+  if (/^\d{4}-\d{2}-\d{2}$/.test(tglUrl || '')) {
+    var a = tglUrl.split('-'), dUrl = new Date(Number(a[0]), Number(a[1]) - 1, Number(a[2]));
+    if (dUrl >= hariIni) { bulan = new Date(dUrl.getFullYear(), dUrl.getMonth(), 1); pilihTanggal(dUrl); }
+  }
 </script>
 
 <footer>&copy; 2026 Sukma Yoga Studio. Tugas Cloud Computing.</footer>
+<script src="ui.js"></script>
 </body>
 </html>

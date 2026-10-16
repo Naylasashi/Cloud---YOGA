@@ -14,6 +14,7 @@
       <li><a href="index.html">Dashboard</a></li>
       <li><a href="paket.html" class="active">Paket</a></li>
       <li><a href="jadwal.html">Jadwal</a></li>
+      <li><a href="riwayat.html">Riwayat Booking</a></li>
     </ul></nav>
   </div>
 </header>
@@ -21,23 +22,32 @@
 <main>
   <section class="hero">
     <h1>Paket dan harga member</h1>
-    <p>Satu credit dipakai untuk satu kelas. Makin besar paketnya, makin murah harga per kelas.</p>
+    <p>Pilih paket dulu, isi data diri, dan bayar di halaman ini. Setelah itu kamu mendapat kode credit untuk mendaftar kelas di halaman Jadwal. Satu credit dipakai untuk satu kelas.</p>
+  </section>
+
+  <section class="box kalkulator" aria-labelledby="judul-kalk">
+    <h2 id="judul-kalk">Bingung pilih paket?</h2>
+    <label for="slider-kelas">Kira-kira berapa kali kamu ingin ikut kelas dalam sebulan?</label>
+    <input type="range" id="slider-kelas" min="1" max="12" value="4">
+    <output id="nilai-kelas" for="slider-kelas">4 kelas per bulan</output>
+    <div class="rekom" id="rekom" aria-live="polite"></div>
   </section>
 
   <div class="pkg-grid">
-    <article class="pkg">
+    <article class="pkg" id="pkg-dropin">
       <h3>Drop-in</h3>
       <p class="harga">Rp 100.000</p>
       <p class="per">1 credit, tanpa member</p>
       <ul>
         <li>Bayar per kelas</li>
         <li>Tidak perlu daftar member</li>
+        <li>Berlaku 1 bulan</li>
         <li>Cocok untuk coba-coba</li>
       </ul>
-      <a href="jadwal.html" class="btn btn-line">Pilih kelas</a>
+      <button type="button" class="btn btn-line" data-paket="dropin">Pilih paket</button>
     </article>
 
-    <article class="pkg">
+    <article class="pkg" id="pkg-starter">
       <h3>Starter</h3>
       <p class="harga">Rp 450.000</p>
       <p class="per">5 credit (Rp 90.000 per kelas)</p>
@@ -46,10 +56,10 @@
         <li>Semua jenis kelas</li>
         <li>Sewa matras gratis</li>
       </ul>
-      <a href="jadwal.html" class="btn btn-line">Pilih kelas</a>
+      <button type="button" class="btn btn-line" data-paket="starter">Pilih paket</button>
     </article>
 
-    <article class="pkg utama">
+    <article class="pkg utama" id="pkg-regular">
       <h3>Regular</h3>
       <p class="harga">Rp 850.000</p>
       <p class="per">10 credit (Rp 85.000 per kelas)</p>
@@ -59,10 +69,10 @@
         <li>Sewa matras gratis</li>
         <li>Bisa bawa 1 teman sekali</li>
       </ul>
-      <a href="jadwal.html" class="btn">Pilih kelas</a>
+      <button type="button" class="btn" data-paket="regular">Pilih paket</button>
     </article>
 
-    <article class="pkg">
+    <article class="pkg" id="pkg-plus">
       <h3>Plus</h3>
       <p class="harga">Rp 1.600.000</p>
       <p class="per">20 credit (Rp 80.000 per kelas)</p>
@@ -72,10 +82,10 @@
         <li>Sewa matras gratis</li>
         <li>Prioritas booking</li>
       </ul>
-      <a href="jadwal.html" class="btn btn-line">Pilih kelas</a>
+      <button type="button" class="btn btn-line" data-paket="plus">Pilih paket</button>
     </article>
 
-    <article class="pkg">
+    <article class="pkg" id="pkg-tahunan">
       <h3>Tahunan</h3>
       <p class="harga">Rp 4.200.000</p>
       <p class="per">60 credit (Rp 70.000 per kelas)</p>
@@ -85,13 +95,165 @@
         <li>Prioritas booking</li>
         <li>Diskon 10% workshop</li>
       </ul>
-      <a href="jadwal.html" class="btn btn-line">Pilih kelas</a>
+      <button type="button" class="btn btn-line" data-paket="tahunan">Pilih paket</button>
     </article>
   </div>
 
-  <p class="catatan">Untuk membeli paket member, hubungi admin studio. Setelah itu kamu mendapat kode member yang dipakai saat mendaftar kelas di halaman Jadwal.</p>
+  <section class="box section-gap sembunyi" id="form-beli" aria-labelledby="judul-beli">
+    <h2 id="judul-beli">Daftar dan bayar paket</h2>
+    <div class="ringkasan" id="ringkasan-paket"></div>
+
+    <form id="form-paket">
+      <label for="nama">Nama lengkap</label>
+      <input type="text" id="nama" required>
+
+      <label for="email">Email</label>
+      <input type="email" id="email" required>
+
+      <label for="hp">No. HP</label>
+      <input type="tel" id="hp" required>
+
+      <label for="metode">Metode pembayaran</label>
+      <select id="metode">
+        <option>Transfer bank</option>
+        <option>QRIS</option>
+        <option>E-wallet</option>
+      </select>
+
+      <button type="submit" id="tombol-bayar">Bayar sekarang</button>
+      <p id="pesan" role="status"></p>
+      <p class="catatan">Pembayaran di halaman ini masih simulasi untuk keperluan tugas, belum terhubung ke payment gateway.</p>
+    </form>
+  </section>
+
+  <section class="box section-gap sembunyi" id="sukses-beli" aria-labelledby="judul-sukses" aria-live="polite">
+    <h2 id="judul-sukses">Pembayaran berhasil</h2>
+    <div class="ringkasan" id="detail-sukses"></div>
+    <p class="catatan">Simpan kode credit di atas. Kode ini dipakai saat mendaftar kelas di halaman Jadwal, dan sisa credit bisa dilihat di Riwayat Booking.</p>
+    <div class="aksi">
+      <a href="jadwal.html" class="btn">Pilih kelas sekarang</a>
+      <a href="riwayat.html" class="btn btn-line">Lihat credit saya</a>
+    </div>
+  </section>
 </main>
 
 <footer>&copy; 2026 Sukma Yoga Studio. Tugas Cloud Computing.</footer>
+
+<script src="kredit.js"></script>
+<script>
+(function () {
+  var PAKET = {
+    dropin:  { nama: 'Drop-in', harga: 100000,  credit: 1,  bulan: 1,  tipe: 'dropin' },
+    starter: { nama: 'Starter', harga: 450000,  credit: 5,  bulan: 2,  tipe: 'member' },
+    regular: { nama: 'Regular', harga: 850000,  credit: 10, bulan: 3,  tipe: 'member' },
+    plus:    { nama: 'Plus',    harga: 1600000, credit: 20, bulan: 6,  tipe: 'member' },
+    tahunan: { nama: 'Tahunan', harga: 4200000, credit: 60, bulan: 12, tipe: 'member' }
+  };
+  var dipilih = null;
+  var el = function (id) { return document.getElementById(id); };
+
+  function rupiah(n) { return 'Rp ' + n.toLocaleString('id-ID'); }
+  function teks(parent, tag, text) {
+    var n = document.createElement(tag); n.textContent = text; parent.appendChild(n); return n;
+  }
+  function baris(parent, label, nilai) {
+    var p = document.createElement('p');
+    var s = document.createElement('strong'); s.textContent = label + ': ';
+    p.appendChild(s); p.appendChild(document.createTextNode(nilai));
+    parent.appendChild(p);
+  }
+
+
+  // Kalkulator: pilih paket dengan harga per kelas paling murah yang creditnya
+  // masih habis terpakai selama masa berlaku (credit per bulan <= rencana kelas per bulan).
+  function rekomendasi(m) {
+    var terbaik = PAKET.dropin, kunciTerbaik = 'dropin';
+    Object.keys(PAKET).forEach(function (k) {
+      var x = PAKET[k];
+      if (x.credit / x.bulan <= m && x.harga / x.credit < terbaik.harga / terbaik.credit) { terbaik = x; kunciTerbaik = k; }
+    });
+    return { kunci: kunciTerbaik, paket: terbaik };
+  }
+  function gambarRekom() {
+    var m = Number(el('slider-kelas').value);
+    el('nilai-kelas').textContent = m + ' kelas per bulan';
+    var r = rekomendasi(m), box = el('rekom');
+    box.innerHTML = '';
+    teks(box, 'strong', 'Paket ' + r.paket.nama + ' paling cocok');
+    teks(box, 'p', rupiah(r.paket.harga / r.paket.credit) + ' per kelas, dan ' + r.paket.credit + ' credit-nya cukup terpakai dalam ' + r.paket.bulan + ' bulan. Ini perkiraan, kamu bebas memilih paket lain.');
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'btn'; b.textContent = 'Pilih paket ' + r.paket.nama;
+    b.addEventListener('click', function () { document.querySelector('[data-paket="' + r.kunci + '"]').click(); });
+    box.appendChild(b);
+  }
+  el('slider-kelas').addEventListener('input', gambarRekom);
+  gambarRekom();
+
+  document.querySelectorAll('[data-paket]').forEach(function (tombol) {
+    tombol.addEventListener('click', function () {
+      var kunci = tombol.getAttribute('data-paket');
+      dipilih = PAKET[kunci];
+      document.querySelectorAll('.pkg').forEach(function (k) { k.classList.remove('dipilih'); });
+      el('pkg-' + kunci).classList.add('dipilih');
+
+      var ring = el('ringkasan-paket'); ring.innerHTML = '';
+      teks(ring, 'strong', 'Paket ' + dipilih.nama);
+      ring.appendChild(document.createElement('br'));
+      ring.appendChild(document.createTextNode(
+        dipilih.credit + ' credit · berlaku ' + dipilih.bulan + ' bulan sejak pembayaran · ' + rupiah(dipilih.harga)));
+
+      el('tombol-bayar').textContent = 'Bayar ' + rupiah(dipilih.harga);
+      el('pesan').style.display = 'none';
+      el('sukses-beli').classList.add('sembunyi');
+      var form = el('form-beli');
+      form.classList.remove('sembunyi');
+      form.scrollIntoView({ behavior: 'smooth' });
+    });
+  });
+
+  el('form-paket').addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (!dipilih) return;
+    var p = el('pesan');
+    var sekarang = new Date();
+    var akun = {
+      kode: Kredit.buatKode(dipilih.tipe),
+      tipe: dipilih.tipe,
+      paket: dipilih.nama,
+      nama: el('nama').value.trim(),
+      email: el('email').value.trim(),
+      hp: el('hp').value.trim(),
+      totalCredit: dipilih.credit,
+      harga: dipilih.harga,
+      metode: el('metode').value,
+      dibeliPada: sekarang.toISOString(),
+      berlakuSampai: Kredit.tanggalKey(Kredit.tambahBulan(sekarang, dipilih.bulan))
+    };
+    var daftar = Kredit.semuaAkun();
+    daftar.push(akun);
+    if (!Kredit.simpanAkun(daftar)) {
+      p.textContent = 'Pembelian tidak dapat disimpan di browser ini. Pastikan penyimpanan browser diizinkan, lalu coba lagi.';
+      p.style.display = 'block';
+      return;
+    }
+
+    var d = el('detail-sukses'); d.innerHTML = '';
+    baris(d, 'Kode credit', akun.kode);
+    baris(d, 'Atas nama', akun.nama);
+    baris(d, 'Paket', akun.paket + (akun.tipe === 'dropin' ? ' (1 credit tanpa member)' : ''));
+    baris(d, 'Credit', akun.totalCredit + ' credit');
+    baris(d, 'Berlaku sampai', Kredit.formatTanggal(akun.berlakuSampai));
+    baris(d, 'Pembayaran', rupiah(akun.harga) + ' via ' + akun.metode);
+
+    this.reset();
+    el('form-beli').classList.add('sembunyi');
+    document.querySelectorAll('.pkg').forEach(function (k) { k.classList.remove('dipilih'); });
+    dipilih = null;
+    var s = el('sukses-beli');
+    s.classList.remove('sembunyi');
+    s.scrollIntoView({ behavior: 'smooth' });
+  });
+})();
+</script>
+<script src="ui.js"></script>
 </body>
 </html>

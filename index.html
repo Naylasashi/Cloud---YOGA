@@ -14,6 +14,7 @@
       <li><a href="index.html" class="active">Dashboard</a></li>
       <li><a href="paket.html">Paket</a></li>
       <li><a href="jadwal.html">Jadwal</a></li>
+      <li><a href="riwayat.html">Riwayat Booking</a></li>
     </ul></nav>
   </div>
 </header>
@@ -31,6 +32,20 @@
     </div>
   </section>
 
+
+  <!-- Jadwal singkat dan credit -->
+  <div class="dash-grid">
+    <section class="box" aria-labelledby="judul-singkat">
+      <h2 id="judul-singkat">Kelas terdekat</h2>
+      <div class="tabs" id="tab-hari" role="group" aria-label="Pilih hari"></div>
+      <div id="daftar-singkat" aria-live="polite"></div>
+    </section>
+    <section class="box" aria-labelledby="judul-credit-dash">
+      <h2 id="judul-credit-dash">Credit kamu</h2>
+      <div id="isi-credit" aria-live="polite"></div>
+    </section>
+  </div>
+
   <!-- Tentang kami -->
   <section class="tentang section-gap" aria-labelledby="judul-tentang">
     <div>
@@ -47,7 +62,7 @@
       <h2 id="judul-lokasi">Lokasi kami</h2>
       <dl>
         <dt>Alamat</dt>
-        <dd>Jl. Prof. Dr. Satrio No. 12, Kel. Kuningan, Kec. Setia Budi, Kota Jakarta Selatan</dd>
+        <dd>Jl. Prof. Dr. Satrio No. 11, Kel. Kuningan, Kec. Setia Budi, Kota Jakarta Selatan</dd>
         <dt>Jam buka</dt>
         <dd>Senin - Jumat: 06.30 - 20.30<br>Sabtu - Minggu: 07.30 - 17.00</dd>
         <dt>Kontak</dt>
@@ -56,11 +71,77 @@
     </div>
     <!-- Ganti nilai q= dengan alamat studio kamu (spasi ditulis +) -->
     <iframe class="peta" title="Peta lokasi studio"
-      src="https://maps.google.com/maps?q=Monas+Jakarta&output=embed"
+      src="https://maps.google.com/maps?q=Ciputra+World2&output=embed"
       loading="lazy"></iframe>
+  </section>
+
+  <!-- FAQ -->
+  <section class="faq section-gap" aria-labelledby="judul-faq">
+    <h2 id="judul-faq" class="judul-seksi">Pertanyaan yang sering ditanyakan</h2>
+    <details><summary>Bagaimana cara daftar kelas?</summary><p>Pilih dan bayar paket di halaman Paket, kamu akan mendapat kode credit. Lalu buka halaman Jadwal, pilih tanggal dan kelas, masukkan kode credit, selesai.</p></details>
+    <details><summary>Kapan saya bisa menjadwalkan ulang kelas?</summary><p>Paling lambat 6 jam sebelum kelas dimulai. Lewat dari itu, tombol jadwal ulang tidak aktif.</p></details>
+    <details><summary>Apakah uang saya dikembalikan kalau booking dibatalkan?</summary><p>Untuk Drop-in (1 credit tanpa member), uang tidak bisa di-refund. Untuk member, 1 credit dikembalikan ke kode member kamu.</p></details>
+    <details><summary>Berapa lama credit berlaku?</summary><p>Tergantung paket: Starter 2 bulan, Regular 3 bulan, Plus 6 bulan, Tahunan 12 bulan, dan Drop-in 1 bulan. Sisa dan masa berlaku credit bisa dilihat di Riwayat Booking.</p></details>
+    <details><summary>Perlu bawa matras sendiri?</summary><p>Tidak wajib. Matras tersedia untuk disewa, dan gratis untuk paket Starter, Regular, dan Plus.</p></details>
   </section>
 </main>
 
 <footer>&copy;Tugas Cloud Computing.</footer>
+<script src="kredit.js"></script>
+<script>
+(function () {
+  var el = function (id) { return document.getElementById(id); };
+  function tambah(p, tag, t, c) { var n = document.createElement(tag); n.textContent = t; if (c) n.className = c; p.appendChild(n); return n; }
+
+  // --- Kelas terdekat: tab Hari ini / Besok / Lusa
+  var hari = [0, 1, 2].map(function (n) { var d = new Date(); d.setDate(d.getDate() + n); return d; });
+  var label = ['Hari ini', 'Besok', 'Lusa'];
+  function mulai(d, jam) {
+    var m = jam.match(/(\d{1,2})[.:](\d{2})/); var x = new Date(d);
+    x.setHours(Number(m[1]), Number(m[2]), 0, 0); return x;
+  }
+  function tampilHari(i) {
+    var d = hari[i], key = Kredit.tanggalKey(d), wadah = el('daftar-singkat');
+    wadah.innerHTML = '';
+    Array.prototype.forEach.call(el('tab-hari').children, function (b, j) { b.classList.toggle('aktif', j === i); b.setAttribute('aria-pressed', j === i); });
+    var daftar = Kredit.KELAS[d.getDay()] || [];
+    if (!daftar.length) { tambah(wadah, 'p', 'Tidak ada kelas di hari ini.'); return; }
+    daftar.forEach(function (k) {
+      var lewat = mulai(d, k.jam) <= new Date();
+      var row = document.createElement('div'); row.className = 'mini-kelas' + (lewat ? ' lewat' : '');
+      var kiri = document.createElement('div');
+      tambah(kiri, 'strong', k.nama);
+      tambah(kiri, 'span', k.jam + ' bersama ' + k.ins);
+      row.appendChild(kiri);
+      if (lewat) tambah(row, 'span', 'Sudah lewat');
+      else { var a = tambah(row, 'a', 'Daftar', 'btn'); a.href = 'jadwal.html?tgl=' + key; }
+      wadah.appendChild(row);
+    });
+  }
+  hari.forEach(function (d, i) {
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.textContent = label[i] + ' · ' + d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+    b.addEventListener('click', function () { tampilHari(i); });
+    el('tab-hari').appendChild(b);
+  });
+  tampilHari(0);
+
+  // --- Ringkasan credit dari browser ini
+  var isi = el('isi-credit');
+  var akun = Kredit.semuaAkun().filter(function (a) { return !Kredit.kedaluwarsa(a) && Kredit.sisa(a) > 0; });
+  if (!akun.length) {
+    tambah(isi, 'p', 'Belum ada credit aktif di browser ini. Pilih paket dan bayar langsung di halaman Paket.');
+    tambah(isi, 'a', 'Lihat paket', 'btn').href = 'paket.html';
+  } else {
+    var total = akun.reduce(function (t, a) { return t + Kredit.sisa(a); }, 0);
+    tambah(isi, 'p', 'Total sisa credit');
+    tambah(isi, 'div', String(total), 'credit-besar');
+    akun.slice(0, 3).forEach(function (a) {
+      tambah(isi, 'p', a.nama + ' · ' + Kredit.sisa(a) + ' credit · sampai ' + Kredit.formatTanggal(a.berlakuSampai));
+    });
+    tambah(isi, 'a', 'Lihat detail', 'btn btn-line').href = 'riwayat.html';
+  }
+})();
+</script>
+<script src="ui.js"></script>
 </body>
 </html>

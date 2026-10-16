@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Riwayat Booking | Sukma Yoga Studio</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <div class="nav">
+    <span class="logo">Sukma Yoga Studio</span>
+    <nav aria-label="Menu utama"><ul>
+      <li><a href="index.html">Dashboard</a></li>
+      <li><a href="paket.html">Paket</a></li>
+      <li><a href="jadwal.html">Jadwal</a></li>
+      <li><a href="riwayat.html" class="active">Riwayat Booking</a></li>
+    </ul></nav>
+  </div>
+</header>
+<main>
+  <section class="hero">
+    <h1>Riwayat Booking</h1>
+    <p>Lihat jadwal yang pernah kamu pesan. Kamu juga bisa membatalkan booking atau menjadwalkan ulang kelas yang masih aktif.</p>
+  </section>
+  <section aria-labelledby="judul-credit">
+    <h2 id="judul-credit" class="judul-seksi">Credit kamu</h2>
+    <div id="daftar-credit" class="credit-list" aria-live="polite"></div>
+  </section>
+  <section class="box aturan" aria-labelledby="judul-aturan">
+    <h2 id="judul-aturan">Aturan jadwal ulang dan pembatalan</h2>
+    <ul>
+      <li>Jadwal ulang bisa dilakukan paling lambat 6 jam sebelum kelas dimulai.</li>
+      <li>Drop-in (1 credit tanpa member): jika booking dibatalkan, uang tidak dapat di-refund dan credit tidak dikembalikan.</li>
+      <li>Member: jika booking dibatalkan, 1 credit dikembalikan ke kode member kamu.</li>
+    </ul>
+  </section>
+  <div class="history-tools">
+    <label for="cari-booking">Cari booking berdasarkan nama kelas, nama guru yoga, atau kode booking</label>
+    <input id="cari-booking" type="search" placeholder="Contoh: Vinyasa, Raka, atau SY-123456">
+    <div class="filter-bar" role="group" aria-label="Filter status booking" style="margin:14px 0 0">
+      <span class="label">Status:</span>
+      <button type="button" class="chip aktif" data-status="semua" aria-pressed="true">Semua</button>
+      <button type="button" class="chip" data-status="aktif" aria-pressed="false">Aktif</button>
+      <button type="button" class="chip" data-status="dibatalkan" aria-pressed="false">Dibatalkan</button>
+    </div>
+    <p class="catatan">Riwayat ini membaca data dari penyimpanan browser yang sama dengan halaman Jadwal.</p>
+  </div>
+  <section id="daftar-riwayat" class="history-list" aria-live="polite"></section>
+  <section id="form-reschedule" class="box section-gap sembunyi" aria-labelledby="judul-reschedule">
+    <h2 id="judul-reschedule">Jadwalkan ulang kelas</h2>
+    <p id="info-reschedule">Pilih tanggal dan jadwal pengganti.</p>
+    <div class="reschedule-layout">
+      <section class="box calendar-reschedule" aria-label="Pilih tanggal baru">
+        <div class="cal-head">
+          <button type="button" id="bulan-sebelumnya" class="btn-sm" aria-label="Bulan sebelumnya">&lt;</button>
+          <h3 id="judul-bulan-reschedule"></h3>
+          <button type="button" id="bulan-berikutnya" class="btn-sm" aria-label="Bulan berikutnya">&gt;</button>
+        </div>
+        <div class="cal-grid" id="kalender-reschedule"></div>
+        <p class="catatan">Pilih tanggal yang memiliki titik untuk melihat kelas yang tersedia.</p>
+      </section>
+      <section class="box" aria-live="polite">
+        <h3 id="judul-kelas-reschedule">Pilih tanggal di kalender</h3>
+        <p id="info-kelas-reschedule">Jadwal dan kuota kelas akan ditampilkan di sini.</p>
+        <div id="daftar-kelas-reschedule"></div>
+      </section>
+    </div>
+    <form id="form-ubah-jadwal">
+      <p id="pilihan-reschedule" class="ringkasan">Belum ada jadwal pengganti yang dipilih.</p>
+      <div class="history-actions">
+        <button type="submit" id="simpan-jadwal-baru" disabled>Simpan jadwal baru</button>
+        <button type="button" class="btn-secondary" id="batal-reschedule">Kembali</button>
+      </div>
+      <p id="pesan-reschedule" role="status"></p>
+    </form>
+  </section>
+</main>
+<footer>&copy; 2026 Sukma Yoga Studio. Tugas Cloud Computing.</footer>
+<script src="kredit.js"></script>
+<script>
+(function () {
+  var KUNCI_BOOKING = 'sukmaYogaBookings';
+  var KUOTA_KELAS = 15;
+  var JAM_BATAS_RESCHEDULE = 6;
+  var filterStatus = 'semua';
+  var bookingUbahId = null;
+  var bulanReschedule = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+  var tanggalReschedule = '';
+  var kelasReschedule = null;
+  var KELAS = {
+    1: [{ jam: '07.00 - 08.00', nama: 'Hatha Yoga (Pemula)', ins: 'Ayu', jenis: 'hatha' }],
+    2: [{ jam: '18.30 - 19.30', nama: 'Vinyasa Flow', ins: 'Raka', jenis: 'vinyasa' }],
+    3: [{ jam: '07.00 - 08.00', nama: 'Meditasi dan Pernapasan', ins: 'Ayu', jenis: 'napas' }, { jam: '18.30 - 19.30', nama: 'Hatha Yoga (Pemula)', ins: 'Dewi', jenis: 'hatha' }],
+    4: [{ jam: '18.30 - 19.30', nama: 'Yin Yoga', ins: 'Dewi', jenis: 'yin' }],
+    5: [{ jam: '07.00 - 08.00', nama: 'Vinyasa Flow', ins: 'Raka', jenis: 'vinyasa' }],
+    6: [{ jam: '08.00 - 09.30', nama: 'Vinyasa Flow', ins: 'Raka', jenis: 'vinyasa' }],
+    0: [{ jam: '08.00 - 09.00', nama: 'Hatha Yoga (Pemula)', ins: 'Dewi', jenis: 'hatha' }]
+  };
+  var el = function (id) { return document.getElementById(id); };
+  function ambilBooking() {
+    try { return JSON.parse(localStorage.getItem(KUNCI_BOOKING) || '[]'); }
+    catch (e) { return []; }
+  }
+  function simpanBooking(data) {
+    try { localStorage.setItem(KUNCI_BOOKING, JSON.stringify(data)); return true; }
+    catch (e) { return false; }
+  }
+  function parseTanggal(value) {
+    var a = value.split('-');
+    return new Date(Number(a[0]), Number(a[1]) - 1, Number(a[2]));
+  }
+  function tanggalKey(d) {
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  function formatTanggal(value) {
+    var d = typeof value === 'string' ? parseTanggal(value) : value;
+    return d.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  }
+  // Waktu mulai kelas dari tanggal (YYYY-MM-DD) dan jam ("07.00 - 08.00")
+  function waktuMulai(tanggal, jam) {
+    var d = parseTanggal(tanggal);
+    var m = String(jam || '').match(/(\d{1,2})[.:](\d{2})/);
+    if (m) d.setHours(Number(m[1]), Number(m[2]), 0, 0);
+    return d;
+  }
+  function sisaWaktuMs(b) { return waktuMulai(b.tanggal, b.jam).getTime() - Date.now(); }
+  function bisaReschedule(b) { return sisaWaktuMs(b) >= JAM_BATAS_RESCHEDULE * 3600 * 1000; }
+  function keyKelas(tanggal, k) { return tanggal + '|' + k.jam + '|' + k.nama + '|' + k.ins; }
+  function aktif(b) { return b.status !== 'dibatalkan'; }
+  function jumlahAktif(key, excludeId) {
+    return ambilBooking().filter(function (b) { return aktif(b) && b.kunciKelas === key && b.id !== excludeId; }).length;
+  }
+  function tambahTeks(parent, tag, text, className) {
+    var node = document.createElement(tag); node.textContent = text;
+    if (className) node.className = className;
+    parent.appendChild(node); return node;
+  }
+  function buatTombol(label, className, aksi) {
+    var b = document.createElement('button'); b.type = 'button'; b.textContent = label;
+    if (className) b.className = className;
+    b.addEventListener('click', aksi); return b;
+  }
+  function gambarRiwayat() {
+    var wadah = el('daftar-riwayat'); wadah.innerHTML = '';
+    var cari = el('cari-booking').value.trim().toLowerCase();
+    var data = ambilBooking().slice().reverse().filter(function (b) {
+      if (filterStatus === 'aktif' && b.status === 'dibatalkan') return false;
+      if (filterStatus === 'dibatalkan' && b.status !== 'dibatalkan') return false;
+      return [b.kelas, b.instruktur, b.id].some(function (v) { return String(v || '').toLowerCase().includes(cari); });
+    });
+    if (!data.length) {
+      tambahTeks(wadah, 'div', cari ? 'Booking tidak ditemukan.' : 'Belum ada riwayat booking. Silakan daftar kelas terlebih dahulu melalui halaman Jadwal.', 'empty-history');
+      return;
+    }
+    data.forEach(function (booking) {
+      var card = document.createElement('article'); card.className = 'history-card';
+      var top = document.createElement('div'); top.className = 'history-card-top';
+      var judul = document.createElement('div');
+      tambahTeks(judul, 'h2', booking.kelas || 'Kelas Yoga');
+      tambahTeks(judul, 'p', (booking.tanggalTeks || formatTanggal(booking.tanggal)) + ' · ' + (booking.jam || 'Jam belum tersedia'));
+      top.appendChild(judul);
+      var status = booking.status === 'dibatalkan' ? 'Dibatalkan' : (booking.status === 'dijadwalkan ulang' ? 'Dijadwalkan ulang' : 'Aktif');
+      var badge = tambahTeks(top, 'span', status, 'status-booking ' + (booking.status === 'dibatalkan' ? 'status-cancel' : ''));
+      card.appendChild(top);
+      var detail = document.createElement('div'); detail.className = 'history-detail';
+      tambahTeks(detail, 'p', 'Nama: ' + (booking.nama || '-'));
+      tambahTeks(detail, 'p', 'Kode booking: ' + (booking.id || '-'));
+      tambahTeks(detail, 'p', 'Instruktur: ' + (booking.instruktur || '-'));
+      tambahTeks(detail, 'p', 'Pembayaran: ' + (booking.metode || '-'));
+      if (booking.kodeMember) tambahTeks(detail, 'p', 'Kode credit: ' + booking.kodeMember);
+      if (booking.status === 'dibatalkan') {
+        tambahTeks(detail, 'p', 'Dibatalkan pada: ' + (booking.dibatalkanPada ? new Date(booking.dibatalkanPada).toLocaleString('id-ID') : '-'));
+        if (booking.jenisPembayaran === 'member') tambahTeks(detail, 'p', booking.creditDikembalikan ? 'Credit member: 1 credit sudah dikembalikan.' : 'Credit member: pengembalian belum tercatat.');
+        else tambahTeks(detail, 'p', 'Pembayaran Drop-in (1 credit tanpa member): uang tidak dapat di-refund dan credit tidak dikembalikan.');
+      }
+      card.appendChild(detail);
+      if (aktif(booking)) {
+        var actions = document.createElement('div'); actions.className = 'history-actions';
+        var tombolUlang = buatTombol('Jadwalkan ulang', 'btn-secondary', function () { bukaReschedule(booking); });
+        var boleh = bisaReschedule(booking);
+        if (!boleh) tombolUlang.disabled = true;
+        actions.appendChild(tombolUlang);
+        actions.appendChild(buatTombol('Batalkan booking', 'btn-danger', function () { batalkanBooking(booking.id); }));
+        card.appendChild(actions);
+        if (!boleh) tambahTeks(card, 'p', sisaWaktuMs(booking) <= 0
+          ? 'Kelas ini sudah dimulai atau sudah lewat, jadi tidak bisa dijadwalkan ulang.'
+          : 'Jadwal ulang hanya bisa dilakukan paling lambat ' + JAM_BATAS_RESCHEDULE + ' jam sebelum kelas dimulai.', 'catatan-ulang');
+      }
+      wadah.appendChild(card);
+    });
+  }
+  function gambarCredit() {
+    var wadah = el('daftar-credit'); wadah.innerHTML = '';
+    var akun = Kredit.semuaAkun().slice().reverse();
+    if (!akun.length) {
+      var kosong = tambahTeks(wadah, 'div', 'Belum ada credit di browser ini. Pilih dan bayar paket di halaman ', 'empty-history');
+      var link = document.createElement('a'); link.href = 'paket.html'; link.textContent = 'Paket';
+      kosong.appendChild(link); kosong.appendChild(document.createTextNode('.'));
+      return;
+    }
+    akun.forEach(function (a) {
+      var sisa = Kredit.sisa(a);
+      var habisWaktu = Kredit.kedaluwarsa(a);
+      var card = document.createElement('article'); card.className = 'credit-card';
+      var top = document.createElement('div'); top.className = 'history-card-top';
+      var judul = document.createElement('div');
+      tambahTeks(judul, 'h3', a.tipe === 'member' ? 'Member ' + a.paket : 'Drop-in (tanpa member)');
+      tambahTeks(judul, 'p', 'Kode: ' + a.kode);
+      top.appendChild(judul);
+      var salah = habisWaktu || sisa === 0;
+      tambahTeks(top, 'span', habisWaktu ? 'Kedaluwarsa' : (sisa === 0 ? 'Credit habis' : 'Aktif'), 'status-booking' + (salah ? ' status-cancel' : ''));
+      card.appendChild(top);
+      var angka = tambahTeks(card, 'p', '', 'credit-sisa');
+      tambahTeks(angka, 'strong', String(sisa));
+      angka.appendChild(document.createTextNode(' dari ' + a.totalCredit + ' credit tersisa'));
+      tambahTeks(card, 'p', 'Atas nama: ' + a.nama);
+      tambahTeks(card, 'p', 'Berlaku sampai: ' + formatTanggal(a.berlakuSampai));
+      wadah.appendChild(card);
+    });
+  }
+  function batalkanBooking(id) {
+    var data = ambilBooking();
+    var b = data.find(function (x) { return x.id === id; });
+    if (!b || !aktif(b)) return;
+    var pesanAturan = b.jenisPembayaran === 'member'
+      ? '1 credit member akan dikembalikan. Lanjutkan pembatalan booking ' + id + '?'
+      : 'Pembayaran Drop In tidak dapat di-refund. Kuota kelas akan tersedia kembali. Lanjutkan pembatalan booking ' + id + '?';
+    if (!window.confirm(pesanAturan)) return;
+    b.status = 'dibatalkan'; b.dibatalkanPada = new Date().toISOString();
+    if (b.jenisPembayaran === 'member' && !b.creditDikembalikan) {
+      b.creditDikembalikan = true;
+      b.creditDikembalikanPada = new Date().toISOString();
+      var pengembalian = [];
+      try { pengembalian = JSON.parse(localStorage.getItem('sukmaYogaCreditReturns') || '[]'); } catch (e) {}
+      pengembalian.push({ bookingId: b.id, kodeMember: b.kodeMember || '', jumlahCredit: 1, tanggal: b.creditDikembalikanPada });
+      try { localStorage.setItem('sukmaYogaCreditReturns', JSON.stringify(pengembalian)); } catch (e) {}
+    } else if (b.jenisPembayaran !== 'member') {
+      b.statusRefund = 'tidak dapat refund';
+    }
+    if (!simpanBooking(data)) { window.alert('Booking tidak dapat diperbarui. Periksa izin penyimpanan browser.'); return; }
+    el('form-reschedule').classList.add('sembunyi');
+    gambarRiwayat();
+    gambarCredit();
+  }
+  function bukaReschedule(booking) {
+    if (!bisaReschedule(booking)) { window.alert('Jadwal ulang hanya bisa dilakukan paling lambat ' + JAM_BATAS_RESCHEDULE + ' jam sebelum kelas dimulai.'); gambarRiwayat(); return; }
+    bookingUbahId = booking.id;
+    tanggalReschedule = '';
+    kelasReschedule = null;
+    bulanReschedule = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+    el('form-reschedule').classList.remove('sembunyi');
+    el('info-reschedule').textContent = 'Booking ' + booking.id + ': pilih tanggal pada kalender, lalu pilih kelas yang masih tersedia.';
+    el('judul-kelas-reschedule').textContent = 'Pilih tanggal di kalender';
+    el('info-kelas-reschedule').textContent = 'Jadwal dan kuota kelas akan ditampilkan di sini.';
+    el('daftar-kelas-reschedule').innerHTML = '';
+    el('pilihan-reschedule').textContent = 'Belum ada jadwal pengganti yang dipilih.';
+    el('simpan-jadwal-baru').disabled = true;
+    el('pesan-reschedule').textContent = '';
+    gambarKalenderReschedule();
+    el('form-reschedule').scrollIntoView({ behavior: 'smooth' });
+  }
+  function gambarKalenderReschedule() {
+    var grid = el('kalender-reschedule'); grid.innerHTML = '';
+    el('judul-bulan-reschedule').textContent = bulanReschedule.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+    ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'].forEach(function (h) { tambahTeks(grid, 'div', h, 'cal-nama'); });
+    var offset = (bulanReschedule.getDay() + 6) % 7;
+    for (var i = 0; i < offset; i++) tambahTeks(grid, 'div', '', 'cal-kosong');
+    var jumlah = new Date(bulanReschedule.getFullYear(), bulanReschedule.getMonth() + 1, 0).getDate();
+    var hariIni = tanggalKey(new Date());
+    for (var n = 1; n <= jumlah; n++) (function (angka) {
+      var d = new Date(bulanReschedule.getFullYear(), bulanReschedule.getMonth(), angka);
+      var key = tanggalKey(d); var b = document.createElement('button');
+      b.type = 'button'; b.textContent = angka; b.className = 'cal-day';
+      if ((KELAS[d.getDay()] || []).length) b.classList.add('ada');
+      if (key < hariIni) b.disabled = true;
+      if (key === tanggalReschedule) b.classList.add('dipilih');
+      b.addEventListener('click', function () { pilihTanggalReschedule(key, d); });
+      grid.appendChild(b);
+    })(n);
+  }
+  function pilihTanggalReschedule(key, d) {
+    tanggalReschedule = key; kelasReschedule = null;
+    el('simpan-jadwal-baru').disabled = true;
+    el('pilihan-reschedule').textContent = 'Belum ada jadwal pengganti yang dipilih.';
+    el('judul-kelas-reschedule').textContent = formatTanggal(key);
+    var wadah = el('daftar-kelas-reschedule'); wadah.innerHTML = '';
+    var daftar = KELAS[d.getDay()] || [];
+    el('info-kelas-reschedule').textContent = daftar.length ? 'Pilih salah satu kelas yang masih memiliki tempat.' : 'Tidak ada kelas pada tanggal ini.';
+    daftar.forEach(function (k) {
+      var keyK = keyKelas(key, k); var count = jumlahAktif(keyK, bookingUbahId); var sisa = Math.max(0, KUOTA_KELAS - count);
+      var lewat = waktuMulai(key, k.jam).getTime() <= Date.now();
+      var tombol = document.createElement('button'); tombol.type = 'button';
+      tombol.className = 'kelas-item' + (sisa === 0 || lewat ? ' penuh' : '');
+      var strong = document.createElement('strong'); strong.textContent = k.nama; tombol.appendChild(strong);
+      tambahTeks(tombol, 'span', k.jam + ' bersama ' + k.ins);
+      tambahTeks(tombol, 'span', 'Sisa ' + sisa + ' dari ' + KUOTA_KELAS + ' tempat', 'kuota');
+      if (lewat) { tambahTeks(tombol, 'span', 'Waktu kelas sudah lewat', 'status-penuh'); tombol.disabled = true; }
+      else if (!sisa) { tambahTeks(tombol, 'span', 'Kelas penuh', 'status-penuh'); tombol.disabled = true; }
+      tombol.addEventListener('click', function () {
+        wadah.querySelectorAll('.kelas-item').forEach(function (x) { x.classList.remove('dipilih'); });
+        tombol.classList.add('dipilih');
+        kelasReschedule = { tanggal: key, jam: k.jam, nama: k.nama, ins: k.ins, key: keyK };
+        el('pilihan-reschedule').textContent = 'Jadwal baru: ' + k.nama + ' · ' + formatTanggal(key) + ' · ' + k.jam + ' · Instruktur ' + k.ins;
+        el('simpan-jadwal-baru').disabled = false;
+      });
+      wadah.appendChild(tombol);
+    });
+    gambarKalenderReschedule();
+  }
+  function tambahOpsi(select, value, label) { var o = document.createElement('option'); o.value = value; o.textContent = label; select.appendChild(o); }
+  el('cari-booking').addEventListener('input', gambarRiwayat);
+  document.querySelectorAll('[data-status]').forEach(function (c) {
+    c.addEventListener('click', function () {
+      filterStatus = c.getAttribute('data-status');
+      document.querySelectorAll('[data-status]').forEach(function (x) { x.classList.toggle('aktif', x === c); x.setAttribute('aria-pressed', x === c); });
+      gambarRiwayat();
+    });
+  });
+  el('bulan-sebelumnya').addEventListener('click', function () { bulanReschedule = new Date(bulanReschedule.getFullYear(), bulanReschedule.getMonth() - 1, 1); gambarKalenderReschedule(); });
+  el('bulan-berikutnya').addEventListener('click', function () { bulanReschedule = new Date(bulanReschedule.getFullYear(), bulanReschedule.getMonth() + 1, 1); gambarKalenderReschedule(); });
+  el('batal-reschedule').addEventListener('click', function () { el('form-reschedule').classList.add('sembunyi'); bookingUbahId = null; tanggalReschedule = ''; kelasReschedule = null; });
+  el('form-ubah-jadwal').addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (!bookingUbahId || !kelasReschedule) { el('pesan-reschedule').textContent = 'Pilih tanggal dan kelas pengganti terlebih dahulu.'; return; }
+    var pilihan = kelasReschedule;
+    var data = ambilBooking();
+    var b = data.find(function (x) { return x.id === bookingUbahId; });
+    if (!b || !aktif(b)) { el('pesan-reschedule').textContent = 'Booking tidak ditemukan atau sudah dibatalkan.'; return; }
+    if (!bisaReschedule(b)) { el('pesan-reschedule').textContent = 'Jadwal ulang hanya bisa dilakukan paling lambat ' + JAM_BATAS_RESCHEDULE + ' jam sebelum kelas dimulai.'; gambarRiwayat(); return; }
+    if (waktuMulai(pilihan.tanggal, pilihan.jam).getTime() <= Date.now()) { el('pesan-reschedule').textContent = 'Kelas pengganti sudah lewat. Pilih jadwal yang masih akan datang.'; return; }
+    if (pilihan.tanggal < tanggalKey(new Date())) { el('pesan-reschedule').textContent = 'Pilih tanggal hari ini atau tanggal berikutnya.'; return; }
+    if (jumlahAktif(pilihan.key, b.id) >= KUOTA_KELAS) { el('pesan-reschedule').textContent = 'Maaf, kuota kelas tersebut baru saja penuh. Pilih kelas lain.'; pilihTanggalReschedule(pilihan.tanggal, parseTanggal(pilihan.tanggal)); return; }
+    b.tanggal = pilihan.tanggal;
+    b.tanggalTeks = formatTanggal(pilihan.tanggal);
+    b.kelas = pilihan.nama; b.jam = pilihan.jam; b.instruktur = pilihan.ins;
+    b.kunciKelas = pilihan.key; b.status = 'dijadwalkan ulang'; b.diubahPada = new Date().toISOString();
+    if (!simpanBooking(data)) { el('pesan-reschedule').textContent = 'Perubahan gagal disimpan. Periksa izin penyimpanan browser.'; return; }
+    bookingUbahId = null; tanggalReschedule = ''; kelasReschedule = null; el('form-reschedule').classList.add('sembunyi');
+    gambarRiwayat();
+    window.alert('Jadwal booking berhasil diubah.');
+  });
+  gambarCredit();
+  gambarRiwayat();
+})();
+</script>
+<script src="ui.js"></script>
+</body>
+</html>
