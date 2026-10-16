@@ -274,62 +274,121 @@
 
   document.getElementById('kode').addEventListener('input', infoAkun);
 
-  // Booking disimpan di localStorage browser agar tetap ada setelah halaman dimuat ulang.
-  document.getElementById('form-daftar').addEventListener('submit', function (e) {
+  
+  // Booking disimpan ke database MySQL melalui backend
+  document.getElementById('form-daftar').addEventListener('submit', async function (e) {
     e.preventDefault();
-    if (!kelasDipilih) return;
-    if (jumlahBooking(tanggalDipilih, kelasDipilih) >= KUOTA_KELAS) {
-      tampilPesan('Maaf, kelas ini baru saja penuh. Silakan pilih kelas atau jadwal lain.', true);
-      gambarDaftarKelas();
-      return;
-    }
-    var akun = Kredit.cariAkun(document.getElementById('kode').value);
-    if (!akun) {
-      tampilPesan('Kode credit tidak ditemukan. Beli paket dulu di halaman Paket, lalu pakai kode yang kamu terima.', true);
-      return;
-    }
-    var tglKelas = tanggalKey(tanggalDipilih);
-    if (akun.berlakuSampai < tglKelas) {
-      tampilPesan('Credit ' + akun.kode + ' berlaku sampai ' + Kredit.formatTanggal(akun.berlakuSampai) + ', jadi tidak bisa dipakai untuk kelas tanggal ' + formatTanggal(tanggalDipilih) + '.', true);
-      return;
-    }
-    if (Kredit.sisa(akun) <= 0) {
-      tampilPesan('Credit untuk kode ' + akun.kode + ' sudah habis. Silakan beli paket baru di halaman Paket.', true);
-      return;
-    }
-    var kunci = kunciKelas(tanggalDipilih, kelasDipilih);
-    var sudahAda = ambilBooking().some(function (b) {
-      return b.kodeMember === akun.kode && b.kunciKelas === kunci && b.status !== 'dibatalkan';
-    });
-    if (sudahAda) {
-      tampilPesan('Kode ' + akun.kode + ' sudah terdaftar di kelas ini.', true);
+
+    if (!kelasDipilih || !tanggalDipilih) {
+      tampilPesan('Pilih tanggal dan kelas terlebih dahulu.', true);
       return;
     }
 
-    var member = akun.tipe === 'member';
-    var booking = {
-      id: 'SY-' + Date.now(), nama: akun.nama, email: akun.email,
-      hp: akun.hp, tanggal: tglKelas,
-      tanggalTeks: formatTanggal(tanggalDipilih), kelas: kelasDipilih.nama, jam: kelasDipilih.jam,
-      instruktur: kelasDipilih.ins, jenisPembayaran: member ? 'member' : 'satuan',
-      metode: member ? 'Credit member' : 'Drop-in (1 credit tanpa member)',
-      kodeMember: akun.kode,
-      kunciKelas: kunci, status: 'aktif', dibuatPada: new Date().toISOString()
-    };
-    var bookings = ambilBooking();
-    bookings.push(booking);
-    try { localStorage.setItem(KUNCI_BOOKING, JSON.stringify(bookings)); }
-    catch (err) {
-      tampilPesan('Booking tidak dapat disimpan di browser ini. Pastikan penyimpanan browser diizinkan, lalu coba lagi.', true);
-      return;
+    var kode = document.getElementById('kode').value.trim().toUpperCase();
+    var tanggal = tanggalKey(tanggalDipilih);
+    var tombol = this.querySelector('button[type="submit"]');
+
+    tombol.disabled = true;
+
+    try {
+      // Ambil data credit langsung dari database
+      var responsCredit = await fetch(
+        '/api/credit/' + encodeURIComponent(kode)
+      );
+      var credit = await responsCredit.json();
+
+      if (!responsCredit.ok) {
+        throw new Error(credit.error || 'Kode credit tidak ditemukan.');
+      }
+
+      if (credit.sisa <= 0) {
+        throw new Error('Credit sudah habis.');
+      }
+
+      if (credit.kedaluwarsa || credit.berlakuSampai < tanggal) {
+        throw new Error(
+          'Credit berlaku sampai ' + credit.berlakuSampai +
+          ' dan tidak dapat digunakan untuk tanggal tersebut.'
+        );
+      }
+
+      // Cari kelas yang cocok dari database berdasarkan hari dan nama
+      var responsKelas = await fetch('/api/kelas');
+      var semuaKelas = await responsKelas.json();
+
+      if (!responsKelas.ok) {
+        throw new Error('Gagal mengambil data kelas dari database.');
+      }
+
+      var namaHari = [
+        'Minggu', 'Senin', 'Selasa', 'Rabu',
+        'Kamis', 'Jumat', 'Sabtu'
+      ][tanggalDipilih.getDay()];
+
+      function normalisasi(teks) {
+        return String(teks || '').trim().toLowerCase();
+      }
+
+      var kelasDB = semuaKelas.find(function (k) {
+        var jamDB = String(k.jamMulai || '').slice(0, 5);
+        var jamUI = kelasDipilih.jam.split(' - ')[0].replace('.', ':');
+        var namaSama = normalisasi(k.nama) === normalisasi(kelasDipilih.nama);
+        var hariSama = normalisasi(k.hari) === normalisasi(namaHari);
+        var jamSama = jamDB === jamUI;
+
+        return namaSama && hariSama && jamSama;
+      });
+
+      if (!kelasDB) {
+        throw new Error(
+          'Kelas tidak cocok dengan jadwal di database. Periksa nama, hari, dan jam kelas di tabel kelas.'
+        );
+      }
+
+      // Kirim booking ke backend untuk disimpan ke MySQL
+      var responsBooking = await fetch('/api/booking', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          kode: kode,
+          kelasId: kelasDB.id,
+          tanggal: tanggal
+        })
+      });
+
+      var hasil = await responsBooking.json();
+
+      if (!responsBooking.ok) {
+        throw new Error(hasil.error || 'Booking gagal disimpan.');
+      }
+
+      // Tampilkan sisa credit terbaru dari database
+      var responsBaru = await fetch(
+        '/api/credit/' + encodeURIComponent(kode)
+      );
+      var creditBaru = await responsBaru.json();
+
+      tampilPesan(
+        'Booking berhasil disimpan! Kode booking: ' +
+        hasil.kodeBooking + '. Terima kasih, ' + credit.nama +
+        '. Kamu terdaftar di ' + kelasDipilih.nama +
+        ' pada ' + formatTanggal(tanggalDipilih) + ', ' +
+        kelasDipilih.jam + '. 1 credit dipakai, sisa credit ' +
+        creditBaru.sisa + '.',
+        false
+      );
+
+      this.reset();
+      document.getElementById('info-akun').classList.add('sembunyi');
+      gambarDaftarKelas();
+
+    } catch (err) {
+      tampilPesan(err.message || 'Terjadi kesalahan saat booking.', true);
+    } finally {
+      tombol.disabled = false;
     }
-    tampilPesan('Booking berhasil disimpan! Kode booking: ' + booking.id + '. Terima kasih, ' + akun.nama + '. Kamu terdaftar di ' + kelasDipilih.nama +
-      ' pada ' + formatTanggal(tanggalDipilih) + ', ' + kelasDipilih.jam + '. 1 credit dipakai, sisa credit ' + Kredit.sisa(akun) + '.', false);
-    this.reset();
-    document.getElementById('info-akun').classList.add('sembunyi');
-    isiDaftarKode();
-    gambarDaftarKelas();
   });
+
 
   document.getElementById('prev').addEventListener('click', function () {
     bulan = new Date(bulan.getFullYear(), bulan.getMonth() - 1, 1);

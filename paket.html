@@ -33,71 +33,11 @@
     <div class="rekom" id="rekom" aria-live="polite"></div>
   </section>
 
-  <div class="pkg-grid">
-    <article class="pkg" id="pkg-dropin">
-      <h3>Drop-in</h3>
-      <p class="harga">Rp 100.000</p>
-      <p class="per">1 credit, tanpa member</p>
-      <ul>
-        <li>Bayar per kelas</li>
-        <li>Tidak perlu daftar member</li>
-        <li>Berlaku 1 bulan</li>
-        <li>Cocok untuk coba-coba</li>
-      </ul>
-      <button type="button" class="btn btn-line" data-paket="dropin">Pilih paket</button>
-    </article>
+  
+<div class="pkg-grid" id="daftar-paket">
+  <p>Memuat paket dari database...</p>
+</div>
 
-    <article class="pkg" id="pkg-starter">
-      <h3>Starter</h3>
-      <p class="harga">Rp 450.000</p>
-      <p class="per">5 credit (Rp 90.000 per kelas)</p>
-      <ul>
-        <li>Berlaku 2 bulan</li>
-        <li>Semua jenis kelas</li>
-        <li>Sewa matras gratis</li>
-      </ul>
-      <button type="button" class="btn btn-line" data-paket="starter">Pilih paket</button>
-    </article>
-
-    <article class="pkg utama" id="pkg-regular">
-      <h3>Regular</h3>
-      <p class="harga">Rp 850.000</p>
-      <p class="per">10 credit (Rp 85.000 per kelas)</p>
-      <ul>
-        <li>Berlaku 3 bulan</li>
-        <li>Semua jenis kelas</li>
-        <li>Sewa matras gratis</li>
-        <li>Bisa bawa 1 teman sekali</li>
-      </ul>
-      <button type="button" class="btn" data-paket="regular">Pilih paket</button>
-    </article>
-
-    <article class="pkg" id="pkg-plus">
-      <h3>Plus</h3>
-      <p class="harga">Rp 1.600.000</p>
-      <p class="per">20 credit (Rp 80.000 per kelas)</p>
-      <ul>
-        <li>Berlaku 6 bulan</li>
-        <li>Semua jenis kelas</li>
-        <li>Sewa matras gratis</li>
-        <li>Prioritas booking</li>
-      </ul>
-      <button type="button" class="btn btn-line" data-paket="plus">Pilih paket</button>
-    </article>
-
-    <article class="pkg" id="pkg-tahunan">
-      <h3>Tahunan</h3>
-      <p class="harga">Rp 4.200.000</p>
-      <p class="per">60 credit (Rp 70.000 per kelas)</p>
-      <ul>
-        <li>Berlaku 12 bulan</li>
-        <li>Semua jenis kelas</li>
-        <li>Prioritas booking</li>
-        <li>Diskon 10% workshop</li>
-      </ul>
-      <button type="button" class="btn btn-line" data-paket="tahunan">Pilih paket</button>
-    </article>
-  </div>
 
   <section class="box section-gap sembunyi" id="form-beli" aria-labelledby="judul-beli">
     <h2 id="judul-beli">Daftar dan bayar paket</h2>
@@ -141,116 +81,247 @@
 
 <script src="kredit.js"></script>
 <script>
-(function () {
-  var PAKET = {
-    dropin:  { nama: 'Drop-in', harga: 100000,  credit: 1,  bulan: 1,  tipe: 'dropin' },
-    starter: { nama: 'Starter', harga: 450000,  credit: 5,  bulan: 2,  tipe: 'member' },
-    regular: { nama: 'Regular', harga: 850000,  credit: 10, bulan: 3,  tipe: 'member' },
-    plus:    { nama: 'Plus',    harga: 1600000, credit: 20, bulan: 6,  tipe: 'member' },
-    tahunan: { nama: 'Tahunan', harga: 4200000, credit: 60, bulan: 12, tipe: 'member' }
-  };
+(async function () {
+  var PAKET = {};
   var dipilih = null;
-  var el = function (id) { return document.getElementById(id); };
 
-  function rupiah(n) { return 'Rp ' + n.toLocaleString('id-ID'); }
-  function teks(parent, tag, text) {
-    var n = document.createElement(tag); n.textContent = text; parent.appendChild(n); return n;
+  var el = function (id) {
+    return document.getElementById(id);
+  };
+
+  function rupiah(n) {
+    return 'Rp ' + Number(n).toLocaleString('id-ID');
   }
+
+  function teks(parent, tag, text) {
+    var n = document.createElement(tag);
+    n.textContent = text;
+    parent.appendChild(n);
+    return n;
+  }
+
   function baris(parent, label, nilai) {
     var p = document.createElement('p');
-    var s = document.createElement('strong'); s.textContent = label + ': ';
-    p.appendChild(s); p.appendChild(document.createTextNode(nilai));
+    var s = document.createElement('strong');
+    s.textContent = label + ': ';
+    p.appendChild(s);
+    p.appendChild(document.createTextNode(nilai ?? '-'));
     parent.appendChild(p);
   }
 
+  function gambarKartu() {
+    var grid = el('daftar-paket');
+    grid.innerHTML = '';
 
-  // Kalkulator: pilih paket dengan harga per kelas paling murah yang creditnya
-  // masih habis terpakai selama masa berlaku (credit per bulan <= rencana kelas per bulan).
-  function rekomendasi(m) {
-    var terbaik = PAKET.dropin, kunciTerbaik = 'dropin';
-    Object.keys(PAKET).forEach(function (k) {
-      var x = PAKET[k];
-      if (x.credit / x.bulan <= m && x.harga / x.credit < terbaik.harga / terbaik.credit) { terbaik = x; kunciTerbaik = k; }
+    Object.keys(PAKET).forEach(function (kode) {
+      var x = PAKET[kode];
+      var kartu = document.createElement('article');
+      kartu.className = 'pkg';
+      kartu.id = 'pkg-' + kode;
+
+      teks(kartu, 'h3', x.nama);
+      teks(kartu, 'p', rupiah(x.harga)).className = 'harga';
+      teks(
+        kartu,
+        'p',
+        x.credit + ' credit · berlaku ' + x.bulan + ' bulan'
+      ).className = 'per';
+
+      var daftar = document.createElement('ul');
+      teks(daftar, 'li', x.tipe === 'dropin'
+        ? 'Paket drop-in'
+        : 'Paket member');
+      teks(daftar, 'li', 'Satu credit digunakan untuk satu kelas');
+      teks(daftar, 'li', 'Berlaku ' + x.bulan + ' bulan');
+      kartu.appendChild(daftar);
+
+      var tombol = document.createElement('button');
+      tombol.type = 'button';
+      tombol.className = 'btn btn-line';
+      tombol.dataset.paket = kode;
+      tombol.textContent = 'Pilih paket';
+      kartu.appendChild(tombol);
+      grid.appendChild(kartu);
     });
-    return { kunci: kunciTerbaik, paket: terbaik };
   }
+
+  function rekomendasi(m) {
+    var kodeTerbaik = Object.keys(PAKET)[0];
+
+    Object.keys(PAKET).forEach(function (kode) {
+      var x = PAKET[kode];
+      var terbaik = PAKET[kodeTerbaik];
+
+      if (
+        x.credit / x.bulan <= m &&
+        (
+          terbaik.credit / terbaik.bulan > m ||
+          x.harga / x.credit < terbaik.harga / terbaik.credit
+        )
+      ) {
+        kodeTerbaik = kode;
+      }
+    });
+
+    return { kunci: kodeTerbaik, paket: PAKET[kodeTerbaik] };
+  }
+
   function gambarRekom() {
     var m = Number(el('slider-kelas').value);
     el('nilai-kelas').textContent = m + ' kelas per bulan';
-    var r = rekomendasi(m), box = el('rekom');
+
+    var r = rekomendasi(m);
+    var box = el('rekom');
     box.innerHTML = '';
-    teks(box, 'strong', 'Paket ' + r.paket.nama + ' paling cocok');
-    teks(box, 'p', rupiah(r.paket.harga / r.paket.credit) + ' per kelas, dan ' + r.paket.credit + ' credit-nya cukup terpakai dalam ' + r.paket.bulan + ' bulan. Ini perkiraan, kamu bebas memilih paket lain.');
-    var b = document.createElement('button'); b.type = 'button'; b.className = 'btn'; b.textContent = 'Pilih paket ' + r.paket.nama;
-    b.addEventListener('click', function () { document.querySelector('[data-paket="' + r.kunci + '"]').click(); });
+
+    teks(box, 'strong', 'Rekomendasi: ' + r.paket.nama);
+    teks(
+      box,
+      'p',
+      rupiah(r.paket.harga / r.paket.credit) +
+      ' per kelas. Kamu tetap bisa memilih paket lainnya.'
+    );
+
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'btn';
+    b.textContent = 'Pilih paket ' + r.paket.nama;
+    b.addEventListener('click', function () {
+      pilihPaket(r.kunci);
+    });
     box.appendChild(b);
   }
-  el('slider-kelas').addEventListener('input', gambarRekom);
-  gambarRekom();
 
-  document.querySelectorAll('[data-paket]').forEach(function (tombol) {
-    tombol.addEventListener('click', function () {
-      var kunci = tombol.getAttribute('data-paket');
-      dipilih = PAKET[kunci];
-      document.querySelectorAll('.pkg').forEach(function (k) { k.classList.remove('dipilih'); });
-      el('pkg-' + kunci).classList.add('dipilih');
-
-      var ring = el('ringkasan-paket'); ring.innerHTML = '';
-      teks(ring, 'strong', 'Paket ' + dipilih.nama);
-      ring.appendChild(document.createElement('br'));
-      ring.appendChild(document.createTextNode(
-        dipilih.credit + ' credit · berlaku ' + dipilih.bulan + ' bulan sejak pembayaran · ' + rupiah(dipilih.harga)));
-
-      el('tombol-bayar').textContent = 'Bayar ' + rupiah(dipilih.harga);
-      el('pesan').style.display = 'none';
-      el('sukses-beli').classList.add('sembunyi');
-      var form = el('form-beli');
-      form.classList.remove('sembunyi');
-      form.scrollIntoView({ behavior: 'smooth' });
-    });
-  });
-
-  el('form-paket').addEventListener('submit', function (e) {
-    e.preventDefault();
+  function pilihPaket(kode) {
+    dipilih = PAKET[kode];
     if (!dipilih) return;
-    var p = el('pesan');
-    var sekarang = new Date();
-    var akun = {
-      kode: Kredit.buatKode(dipilih.tipe),
-      tipe: dipilih.tipe,
-      paket: dipilih.nama,
-      nama: el('nama').value.trim(),
-      email: el('email').value.trim(),
-      hp: el('hp').value.trim(),
-      totalCredit: dipilih.credit,
-      harga: dipilih.harga,
-      metode: el('metode').value,
-      dibeliPada: sekarang.toISOString(),
-      berlakuSampai: Kredit.tanggalKey(Kredit.tambahBulan(sekarang, dipilih.bulan))
-    };
-    var daftar = Kredit.semuaAkun();
-    daftar.push(akun);
-    if (!Kredit.simpanAkun(daftar)) {
-      p.textContent = 'Pembelian tidak dapat disimpan di browser ini. Pastikan penyimpanan browser diizinkan, lalu coba lagi.';
-      p.style.display = 'block';
-      return;
+
+    document.querySelectorAll('.pkg').forEach(function (k) {
+      k.classList.remove('dipilih');
+    });
+
+    el('pkg-' + kode).classList.add('dipilih');
+
+    var ring = el('ringkasan-paket');
+    ring.innerHTML = '';
+    teks(ring, 'strong', 'Paket ' + dipilih.nama);
+    teks(
+      ring,
+      'p',
+      dipilih.credit + ' credit · berlaku ' + dipilih.bulan +
+      ' bulan · ' + rupiah(dipilih.harga)
+    );
+
+    el('tombol-bayar').textContent =
+      'Bayar ' + rupiah(dipilih.harga);
+    el('pesan').style.display = 'none';
+    el('sukses-beli').classList.add('sembunyi');
+    el('form-beli').classList.remove('sembunyi');
+    el('form-beli').scrollIntoView({ behavior: 'smooth' });
+  }
+
+  // Ambil daftar paket langsung dari MySQL melalui backend.
+  try {
+    var responsePaket = await fetch('/api/paket');
+    if (!responsePaket.ok) {
+      throw new Error('Gagal mengambil daftar paket dari server.');
     }
 
-    var d = el('detail-sukses'); d.innerHTML = '';
-    baris(d, 'Kode credit', akun.kode);
-    baris(d, 'Atas nama', akun.nama);
-    baris(d, 'Paket', akun.paket + (akun.tipe === 'dropin' ? ' (1 credit tanpa member)' : ''));
-    baris(d, 'Credit', akun.totalCredit + ' credit');
-    baris(d, 'Berlaku sampai', Kredit.formatTanggal(akun.berlakuSampai));
-    baris(d, 'Pembayaran', rupiah(akun.harga) + ' via ' + akun.metode);
+    var dataPaket = await responsePaket.json();
 
-    this.reset();
-    el('form-beli').classList.add('sembunyi');
-    document.querySelectorAll('.pkg').forEach(function (k) { k.classList.remove('dipilih'); });
-    dipilih = null;
-    var s = el('sukses-beli');
-    s.classList.remove('sembunyi');
-    s.scrollIntoView({ behavior: 'smooth' });
+    dataPaket.forEach(function (x) {
+      PAKET[x.kode] = {
+        kode: x.kode,
+        nama: x.nama,
+        harga: Number(x.harga),
+        credit: Number(x.jumlahCredit),
+        bulan: Number(x.masaBerlakuBulan),
+        tipe: x.tipe
+      };
+    });
+
+    if (!Object.keys(PAKET).length) {
+      throw new Error('Belum ada paket di database.');
+    }
+
+    gambarKartu();
+    gambarRekom();
+
+  } catch (error) {
+    el('daftar-paket').textContent =
+      'Paket gagal dimuat: ' + error.message;
+    return;
+  }
+
+  el('slider-kelas').addEventListener('input', gambarRekom);
+
+  el('daftar-paket').addEventListener('click', function (e) {
+    var tombol = e.target.closest('[data-paket]');
+    if (tombol) pilihPaket(tombol.dataset.paket);
+  });
+
+  el('form-paket').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    if (!dipilih) return;
+
+    var p = el('pesan');
+    var tombol = el('tombol-bayar');
+    tombol.disabled = true;
+    p.textContent = 'Memproses pembelian...';
+    p.style.display = 'block';
+
+    try {
+      var response = await fetch('/api/beli', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nama: el('nama').value.trim(),
+          email: el('email').value.trim(),
+          hp: el('hp').value.trim(),
+          paketKode: dipilih.kode,
+          metode: el('metode').value
+        })
+      });
+
+      var hasil = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          hasil.error || hasil.message || 'Pembelian gagal.'
+        );
+      }
+
+      var d = el('detail-sukses');
+      d.innerHTML = '';
+
+      baris(d, 'Kode credit', hasil.kode);
+      baris(d, 'Atas nama', hasil.nama);
+      baris(d, 'Paket', dipilih.nama);
+      baris(d, 'Credit', hasil.totalCredit + ' credit');
+      baris(d, 'Berlaku sampai', hasil.berlakuSampai);
+      baris(
+        d,
+        'Pembayaran',
+        rupiah(dipilih.harga) + ' via ' + el('metode').value
+      );
+
+      el('form-paket').reset();
+      el('form-beli').classList.add('sembunyi');
+      document.querySelectorAll('.pkg').forEach(function (k) {
+        k.classList.remove('dipilih');
+      });
+
+      dipilih = null;
+      p.style.display = 'none';
+      el('sukses-beli').classList.remove('sembunyi');
+      el('sukses-beli').scrollIntoView({ behavior: 'smooth' });
+
+    } catch (error) {
+      p.textContent = 'Pembelian gagal: ' + error.message;
+      p.style.display = 'block';
+    } finally {
+      tombol.disabled = false;
+    }
   });
 })();
 </script>
