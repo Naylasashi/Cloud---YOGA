@@ -266,4 +266,7 @@ button:active:not(:disabled),.btn:active{transform:scale(.97)}
 .kalkulator output{font-family:Georgia,serif;font-size:1.6rem;color:var(--accent)}
 .rekom{margin-top:12px;padding:14px;border-radius:8px;background:var(--card);border:1px dashed var(--olive);color:var(--ink)}
 .rekom .btn{margin-top:10px;padding:9px 20px}
+
+@media(max-width:760px){.dash-grid{grid-template-columns:1fr}}
+
 @media(max-width:760px){.dash-grid{grid-template-columns:1fr}}
